@@ -33,9 +33,12 @@ func New(redis_cli *redis.Client) *ListModel {
 	}
 
 	for _, key := range keys {
-		//kt := redis_cli.Type(ctx, key).Val()
+		keyType := redis_cli.Type(ctx, key).Val()
 		//fmt.Printf("key: %s kt %s\n", key, kt)
-		items = append(items, item{key: key})
+		items = append(items, ListItem{
+			Key:     key,
+			KeyType: keyType,
+		})
 	}
 
 	fmt.Printf("found %s keys\n", len(keys))

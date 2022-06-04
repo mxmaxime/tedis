@@ -20,3 +20,10 @@ func StringOrInt(val1 string, val2 int) int {
 
 	return val2
 }
+
+func MaxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}

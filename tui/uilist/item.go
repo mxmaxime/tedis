@@ -2,22 +2,19 @@ package uilist
 
 import "fmt"
 
-type item struct {
-	keyType string
-
-	key string
-	val string
-
-	err bool
+type ListItem struct {
+	KeyType string
+	Key     string
+	Err     string
 }
 
-func (i item) Title() string { return i.key }
+func (i ListItem) Title() string { return i.Key }
 
-func (i item) Description() string {
-	if i.err {
-		return "get error: " + i.val
+func (i ListItem) Description() string {
+	if i.Err != "" {
+		return "got an error"
 	}
-	return fmt.Sprintf("key: %d bytes, value: %d bytes", len(i.key), len(i.val))
+	return fmt.Sprintf("key: %d bytes, value: %d bytes", len(i.Key))
 }
 
-func (i item) FilterValue() string { return i.key }
+func (i ListItem) FilterValue() string { return i.Key }

@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/go-redis/redis/v8"
+	"github.com/mxmaxime/tedis/tui/uidetail"
 	"github.com/mxmaxime/tedis/tui/uilist"
 	"github.com/mxmaxime/tedis/utils"
 )
@@ -20,6 +21,7 @@ const (
 type MainModel struct {
 	state sessionState
 
+	redisClient *redis.Client
 	listModel   tea.Model
 	detailModel tea.Model
 
@@ -38,8 +40,9 @@ func New() *MainModel {
 	cli := RedisClient()
 
 	return &MainModel{
-		state:     listView,
-		listModel: uilist.New(cli),
+		state:       listView,
+		listModel:   uilist.New(cli),
+		redisClient: cli,
 	}
 }
 
@@ -88,9 +91,14 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
+	case uidetail.BackMsg:
+		m.state = listView
+		m.detailModel = nil
+
 	case uilist.SelectMsg:
 		m.state = detailView
 		m.activeKey = msg.ActiveRedisKey
+
 	case tea.WindowSizeMsg:
 		fmt.Println()
 		//m.OnSizeChange(msg)
@@ -114,6 +122,20 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.listModel = listModel
 		cmds = append(cmds, cmd)
+	case detailView:
+		// that's a piece of garbage, can't find a better way. Shit!
+		if m.detailModel == nil {
+			m.detailModel = uidetail.New(m.redisClient, m.activeKey)
+		}
+		newDetail, newCmd := m.detailModel.Update(msg)
+		detailModel, ok := newDetail.(uidetail.DetailModel)
+		if !ok {
+			panic("could not perform assertion on uidetail model")
+		}
+
+		m.detailModel = detailModel
+		cmd = newCmd
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -124,6 +146,6 @@ func (m MainModel) View() string {
 	case listView:
 		return m.listModel.View()
 	default:
-		return "unknown state.. :("
+		return m.detailModel.View()
 	}
 }

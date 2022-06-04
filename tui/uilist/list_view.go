@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mxmaxime/tedis/tui/constants"
@@ -25,7 +26,7 @@ func (m *ListModel) activeKey() string {
 	items := m.list.Items()
 	activeItem := items[m.list.Index()]
 
-	return activeItem.(item).key
+	return activeItem.(ListItem).Key
 }
 
 func selectItemCmd(activeKey string) tea.Cmd {
@@ -37,7 +38,7 @@ func selectItemCmd(activeKey string) tea.Cmd {
 
 func (m *ListModel) onSizeChange(msg tea.WindowSizeMsg) {
 	width, height := msg.Width, msg.Height
-	fmt.Printf("width=%d height=%d\n", width, height)
+	//fmt.Printf("width=%d height=%d\n", width, height)
 
 	m.list.SetSize(width, height)
 }
@@ -48,6 +49,11 @@ func (m ListModel) onKey(msg tea.KeyMsg) (ListModel, tea.Cmd) {
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
+
+	if m.list.FilterState() == list.Filtering {
+		//fmt.Println(filterVal)
+		//filterVal := m.list.FilterValue()
+	}
 
 	switch {
 	case key.Matches(msg, constants.Keymap.Enter):

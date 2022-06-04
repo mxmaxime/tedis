@@ -6,7 +6,10 @@ require (
 	github.com/charmbracelet/bubbles v0.11.0
 	github.com/charmbracelet/bubbletea v0.21.0
 	github.com/charmbracelet/lipgloss v0.5.0
+	github.com/evertras/bubble-table v0.12.1
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/pkg/errors v0.9.1
+	github.com/tidwall/pretty v1.2.0
 )
 
 require (
@@ -14,7 +17,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/evertras/bubble-table v0.12.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
