@@ -1,4 +1,4 @@
-package tedis
+package utils
 
 import "strconv"
 

@@ -1,4 +1,4 @@
-package tedis
+package myredis
 
 import (
 	"context"
@@ -6,15 +6,15 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-type redis_repo struct {
-	cli *redis.Client
+type RedisRepo struct {
+	Cli *redis.Client
 }
 
 // https://redis.uptrace.dev/guide/get-all-keys.html
-func (r *redis_repo) GetKeys(ctx context.Context, cursor uint64, match string, count int64) ([]string, error) {
+func (r *RedisRepo) GetKeys(ctx context.Context, cursor uint64, match string, count int64) ([]string, error) {
 	var keys []string
 
-	iter := r.cli.Scan(ctx, cursor, match, count).Iterator()
+	iter := r.Cli.Scan(ctx, cursor, match, count).Iterator()
 
 	for iter.Next(ctx) {
 		keys = append(keys, iter.Val())
