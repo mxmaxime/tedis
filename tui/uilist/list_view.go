@@ -3,8 +3,10 @@ package uilist
 import (
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mxmaxime/tedis/tui/constants"
 )
 
 var (
@@ -19,11 +21,43 @@ type SelectMsg struct {
 	ActiveRedisKey string
 }
 
+func (m *ListModel) activeKey() string {
+	items := m.list.Items()
+	activeItem := items[m.list.Index()]
+
+	return activeItem.(item).key
+}
+
+func selectItemCmd(activeKey string) tea.Cmd {
+	return func() tea.Msg {
+		fmt.Println("in select item cmd, selected key: ", activeKey)
+		return SelectMsg{ActiveRedisKey: activeKey}
+	}
+}
+
 func (m *ListModel) onSizeChange(msg tea.WindowSizeMsg) {
 	width, height := msg.Width, msg.Height
 	fmt.Printf("width=%d height=%d\n", width, height)
 
 	m.list.SetSize(width, height)
+}
+
+// when a key is pressed
+func (m ListModel) onKey(msg tea.KeyMsg) (ListModel, tea.Cmd) {
+	var (
+		cmd  tea.Cmd
+		cmds []tea.Cmd
+	)
+
+	switch {
+	case key.Matches(msg, constants.Keymap.Enter):
+		cmd = selectItemCmd(m.activeKey())
+		//fmt.Printf("onKey pressed in list view, cmd = %v\n", cmd)
+	}
+
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -35,7 +69,11 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.onSizeChange(msg)
+	case tea.KeyMsg:
+		m, cmd = m.onKey(msg)
 	}
+
+	cmds = append(cmds, cmd)
 
 	// built-in list update (navigation..)
 	m.list, cmd = m.list.Update(msg)

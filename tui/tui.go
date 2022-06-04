@@ -22,6 +22,8 @@ type MainModel struct {
 
 	listModel   tea.Model
 	detailModel tea.Model
+
+	activeKey string
 }
 
 func RedisClient() *redis.Client {
@@ -86,14 +88,18 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
+	case uilist.SelectMsg:
+		m.state = detailView
+		m.activeKey = msg.ActiveRedisKey
 	case tea.WindowSizeMsg:
 		fmt.Println()
 		//m.OnSizeChange(msg)
 	// Is it a key press?
 	case tea.KeyMsg:
 		cmd = m.handleKeys(msg)
-		cmds = append(cmds, cmd)
 	}
+
+	cmds = append(cmds, cmd)
 
 	// update children views
 	switch m.state {
@@ -103,6 +109,9 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !ok {
 			panic("could not perform assertion on uilist model")
 		}
+
+		//log.Printf("list updated, cmd = %v\n", cmd)
+
 		m.listModel = listModel
 		cmds = append(cmds, cmd)
 	}
