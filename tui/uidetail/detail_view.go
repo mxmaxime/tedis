@@ -82,6 +82,7 @@ func New(cli *redis.Client, selectedKey string) *DetailModel {
 	}
 
 	niceJson := pretty.Pretty(valStr)
+
 	colorized := pretty.Color(niceJson, pretty.TerminalStyle)
 
 	item := Item{
@@ -158,9 +159,34 @@ type editorFinishedMsg struct {
 	filepath string
 }
 
+type askEditConfirmationMsg struct {
+	diff []byte
+
+	// file where the modification is written to
+	filepath string
+}
+
+type confirmationState = int
+
+const (
+	write int = iota
+	cancel
+	continueEdit
+)
+
+type editConfirmationMsg struct {
+	state confirmationState
+}
+
 /**
  * Commands
  */
+
+func msgToCmd(msg tea.Msg) tea.Cmd {
+	return func() tea.Msg {
+		return msg
+	}
+}
 
 func BackCmd() tea.Cmd {
 	return func() tea.Msg {
@@ -196,6 +222,25 @@ func (m DetailModel) openEditorCmd() tea.Cmd {
 	return tea.ExecProcess(c, func(err error) tea.Msg {
 		return editorFinishedMsg{err, filename}
 	})
+}
+
+func (m DetailModel) onEditorFinished(msg editorFinishedMsg) (DetailModel, tea.Cmd) {
+	dataBytes, err := os.ReadFile(msg.filepath)
+	if err != nil {
+		// design choice: if I can't read the file to show the diff that will be saved, skip the saving.
+		return m, errCmd(errors.Wrap(err, "cannot read file to diff it. Save to redis is canceled."))
+	}
+
+	// not needed anymore
+	//defer os.Remove(msg.filepath)
+
+	//newData := string(dataBytes)
+	//fmt.Println(newData)
+	return m, msgToCmd(askEditConfirmationMsg{diff: []byte("some diff to implement here"), filepath: msg.filepath})
+}
+
+func (m DetailModel) onEditorFinished(msg askEditConfirmationMsg) (DetailModel, tea.Cmd) {
+
 }
 
 func (m DetailModel) onKeys(msg tea.KeyMsg) (DetailModel, tea.Cmd) {
@@ -253,21 +298,6 @@ func (m DetailModel) onWindowSizeChange(msg tea.WindowSizeMsg) (DetailModel, tea
 	/*
 		m.setViewportContent()
 	*/
-	return m, nil
-}
-
-func (m DetailModel) onEditorFinished(msg editorFinishedMsg) (DetailModel, tea.Cmd) {
-	dataBytes, err := os.ReadFile(msg.filepath)
-	if err != nil {
-		// design choice: if I can't read the file to show the diff that will be saved, skip the saving.
-		return m, errCmd(errors.Wrap(err, "cannot read file to diff it. Save to redis is canceled."))
-	}
-
-	// not needed anymore
-	defer os.Remove(msg.filepath)
-
-	newData := string(dataBytes)
-	fmt.Println(newData)
 	return m, nil
 }
 
