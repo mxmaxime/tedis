@@ -43,7 +43,15 @@ type sessionState = int
 const (
 	jsonView sessionState = iota
 	tableView
+	confirmationView
 )
+
+type confirmationModel struct {
+	diff []byte
+
+	// file where the modification is written to
+	filepath string
+}
 
 type DetailModel struct {
 	state    sessionState
@@ -59,6 +67,8 @@ type DetailModel struct {
 	table       table.Model
 	viewport    viewport.Model
 	ready       bool
+
+	confirmationModel confirmationModel
 }
 
 func New(cli *redis.Client, selectedKey string) *DetailModel {
@@ -159,11 +169,8 @@ type editorFinishedMsg struct {
 	filepath string
 }
 
-type askEditConfirmationMsg struct {
-	diff []byte
-
-	// file where the modification is written to
-	filepath string
+type confirmationMsg struct {
+	state confirmationState
 }
 
 type confirmationState = int
@@ -173,10 +180,6 @@ const (
 	cancel
 	continueEdit
 )
-
-type editConfirmationMsg struct {
-	state confirmationState
-}
 
 /**
  * Commands
@@ -225,32 +228,74 @@ func (m DetailModel) openEditorCmd() tea.Cmd {
 }
 
 func (m DetailModel) onEditorFinished(msg editorFinishedMsg) (DetailModel, tea.Cmd) {
-	dataBytes, err := os.ReadFile(msg.filepath)
+	_, err := os.ReadFile(msg.filepath)
 	if err != nil {
 		// design choice: if I can't read the file to show the diff that will be saved, skip the saving.
 		return m, errCmd(errors.Wrap(err, "cannot read file to diff it. Save to redis is canceled."))
 	}
 
-	// not needed anymore
-	//defer os.Remove(msg.filepath)
-
 	//newData := string(dataBytes)
 	//fmt.Println(newData)
-	return m, msgToCmd(askEditConfirmationMsg{diff: []byte("some diff to implement here"), filepath: msg.filepath})
+	m.state = confirmationView
+	m.confirmationModel = confirmationModel{diff: []byte("some diff to implement here"), filepath: msg.filepath}
+	return m, nil
 }
 
-func (m DetailModel) onEditorFinished(msg askEditConfirmationMsg) (DetailModel, tea.Cmd) {
+func (m DetailModel) onWrite(msg confirmationMsg) (DetailModel, tea.Cmd) {
 
+	return m, nil
 }
+
+func (m DetailModel) onCancel(msg confirmationMsg) (DetailModel, tea.Cmd) {
+	// not needed anymore
+	defer os.Remove(m.confirmationModel.filepath)
+
+	m.state = jsonView
+
+	return m, nil
+}
+
+func (m DetailModel) onContinueEdit(msg confirmationMsg) (DetailModel, tea.Cmd) {
+	filename := m.confirmationModel.filepath
+
+	editorEnv, ok := os.LookupEnv("EDITOR")
+	if !ok {
+		editorEnv = "vi"
+	}
+
+	c := exec.Command(editorEnv, filename)
+
+	return m, tea.ExecProcess(c, func(err error) tea.Msg {
+		return editorFinishedMsg{err, filename}
+	})
+}
+
+//func (m DetailModel) onEditorFinished(msg askEditConfirmationMsg) (DetailModel, tea.Cmd) {
+//}
 
 func (m DetailModel) onKeys(msg tea.KeyMsg) (DetailModel, tea.Cmd) {
 	var cmd tea.Cmd
 
-	switch {
-	case key.Matches(msg, constants.Keymap.Back):
-		cmd = BackCmd()
-	case key.Matches(msg, constants.Keymap.Create):
-		return m, m.openEditorCmd()
+	switch m.state {
+	case confirmationView:
+		switch {
+		// cancel: delete changes + don't write
+		case key.Matches(msg, constants.Keymap.Cancel):
+			// write things to redis
+			return m, msgToCmd(confirmationMsg{state: cancel})
+		case key.Matches(msg, constants.Keymap.Save):
+			// continue edditing
+			return m, msgToCmd(confirmationMsg{state: write})
+		case key.Matches(msg, constants.Keymap.Create):
+			return m, msgToCmd(confirmationMsg{state: continueEdit})
+		}
+	default:
+		switch {
+		case key.Matches(msg, constants.Keymap.Back):
+			cmd = BackCmd()
+		case key.Matches(msg, constants.Keymap.Create):
+			return m, m.openEditorCmd()
+		}
 	}
 	/**
 	used for table
@@ -328,6 +373,17 @@ func (m DetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg.Error()
 	case editorFinishedMsg:
 		m, cmd = m.onEditorFinished(msg)
+	case confirmationMsg:
+		fmt.Println("got confirmation msg")
+		switch msg.state {
+		case write:
+		case continueEdit:
+			return m.onContinueEdit(msg)
+		case cancel:
+			return m.onCancel(msg)
+		default:
+			return m, errCmd(errMsg{errors.New("unkown state.")})
+		}
 	}
 
 	m.viewport, cmd = m.viewport.Update(msg)
@@ -367,7 +423,12 @@ func (m DetailModel) footerView() string {
 }
 
 func (m DetailModel) View() string {
-	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+	switch m.state {
+	case confirmationView:
+		return "Press q to cancel, w to write your changes in Redis, and i to go back in the edditing mode"
+	default:
+		return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+	}
 
 	/*
 		wip table stuff

@@ -10,7 +10,7 @@ func StringOr(val1 string, val2 string) string {
 }
 
 func StringOrInt(val1 string, val2 int) int {
-	if val1 == "" {
+	if val1 != "" {
 		intVal, err := strconv.Atoi(val1)
 		if err != nil {
 			return val2

@@ -9,6 +9,8 @@ type keymap struct {
 	Enter  key.Binding
 	Rename key.Binding
 	Back   key.Binding
+	Save   key.Binding
+	Cancel key.Binding
 }
 
 // Keymap reusable key mappings shared across models
@@ -17,7 +19,6 @@ var Keymap = keymap{
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "select"),
 	),
-	// open editor to edit things.
 	Create: key.NewBinding(
 		key.WithKeys("i"),
 		key.WithHelp("i", "insert"),
@@ -25,5 +26,13 @@ var Keymap = keymap{
 	Back: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "back"),
+	),
+	Save: key.NewBinding(
+		key.WithKeys("w"),
+		key.WithHelp("w", "write/save"),
+	),
+	Cancel: key.NewBinding(
+		key.WithKeys("q"),
+		key.WithHelp("q", "cancel"),
 	),
 }
