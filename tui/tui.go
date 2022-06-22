@@ -39,7 +39,7 @@ func RedisClient() *redis.Client {
 // If cli is nil it will instanciate new client thanks to env variables.
 func New(cli *redis.Client) *MainModel {
 	if cli == nil {
-		cli := RedisClient()
+		cli = RedisClient()
 	}
 
 	return &MainModel{
