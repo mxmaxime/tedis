@@ -36,8 +36,11 @@ func RedisClient() *redis.Client {
 	})
 }
 
-func New() *MainModel {
-	cli := RedisClient()
+// If cli is nil it will instanciate new client thanks to env variables.
+func New(cli *redis.Client) *MainModel {
+	if cli == nil {
+		cli := RedisClient()
+	}
 
 	return &MainModel{
 		state:       listView,

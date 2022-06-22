@@ -23,10 +23,17 @@ type SelectMsg struct {
 }
 
 func (m *ListModel) activeKey() string {
-	items := m.list.Items()
-	activeItem := items[m.list.Index()]
+	// old way of finding the active key,
+	// doesn't work with the built-in list filter
+	//items := m.list.Items()
+	//activeItem := items[m.list.Index()]
 
-	return activeItem.(ListItem).Key
+	item, ok := m.list.SelectedItem().(ListItem)
+	if !ok {
+		// todo
+	}
+
+	return item.Key
 }
 
 func selectItemCmd(activeKey string) tea.Cmd {
